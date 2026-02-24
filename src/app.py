@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Form
 from src.gemini import google_genai_client
+import time
 
 app = FastAPI()
 
@@ -24,5 +25,20 @@ def get_models():
     return {"response":  model_list}
 
 @app.post("/ask")
-def ask_ai():
-    pass
+def ask_ai(question: str = Form(...)):
+    print(f"Got a query: {question}")
+    start = time.perf_counter()
+    response = google_genai_client.models.generate_content(
+        model="gemini-3-flash-preview",
+        contents=question
+    )
+    #to be used with StreamingResponse class of FastAPI
+    r'''
+    for chunk in response:
+        if chunk.text:
+            yield chunk.text
+    '''
+    time_taken = time.perf_counter() - start
+    print(f"time taken in Gemini API call: {time_taken:0.2f}s")
+    print(f"Sending response: {response.text}")
+    return {"response": response.text}
